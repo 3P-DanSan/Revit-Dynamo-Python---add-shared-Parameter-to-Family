@@ -1,0 +1,36 @@
+
+#Copyright(c) 2014-2017, DanEDU Dynamo
+#Erik Falck Jørgensen, Technical University of Denmark (DTU)
+
+from System.IO import Path, Directory, SearchOption, File, FileAttributes
+
+#log builder
+log = []
+
+#input assigned the IN variable
+folders = IN[0]
+strings = IN[1]
+deep = IN[2]
+
+try:
+	#determine if deepsearch from current directory is needed
+	if deep: doc = Directory.GetFiles(folders, strings, SearchOption.AllDirectories)
+	else: doc = Directory.GetFiles(folders, strings)
+
+	#get only files witch is not hidden or readonly (and thereby system etc.)
+	hi = FileAttributes.Hidden
+	ro = FileAttributes.ReadOnly
+	
+	t1, t2 = [], []
+	for i in doc:
+		if File.GetAttributes(i).HasFlag(hi) == 0 and File.GetAttributes(i).HasFlag(ro) == 0:
+			t1.append(Path.GetFileNameWithoutExtension(i))
+			t2.append(Path.GetFullPath(i))
+	result = t1, t2
+except:
+	log = 'Directory does not exist!\nPlease veryfy setting', None
+
+#output assigned the OUT variable
+if log: result = ''.join(map(str, log))
+OUT = result
+    
