@@ -1,0 +1,64 @@
+
+#Copyright(c) 2014-2017, DanEDU Dynamo
+#Erik Falck Jørgensen, Technical University of Denmark (DTU)
+
+import clr
+clr.AddReference('RevitAPI')
+from Autodesk.Revit.DB import*
+
+clr.AddReference('RevitServices')
+from RevitServices.Persistence import DocumentManager
+from RevitServices.Transactions import TransactionManager
+uiapp = DocumentManager.Instance.CurrentUIApplication
+app = uiapp.Application
+
+#log builder, only for testing
+#log = []
+
+#input assigned the IN variable
+docs = IN[0] #document list
+params = IN[1] #parameter name in shared parameter file
+group = IN[2] #group in shared parameter file
+paramGroup = IN[3] #BuiltInParameterGroup
+instance = IN[4] #boolean value for instance
+
+#wrap input inside a list (if not a list)
+if not isinstance(docs, list): docs = [docs]
+if not isinstance(params, list): params = [params]
+
+#change string to BuiltInParameterGroup
+if isinstance(paramGroup, basestring): exec("paramGroup = BuiltInParameterGroup.%s" % paramGroup)
+
+#default document set to DocumentManager.Instance.CurrentDBDocument
+if docs[0] == 'Current.Document': docs = [DocumentManager.Instance.CurrentDBDocument]
+
+#external definition
+def defFile(spfile, group, param):
+	defGroup = spfile.Groups.get_Item(group)
+	return defGroup.Definitions.get_Item(param)
+
+for doc in docs:
+	TransactionManager.Instance.EnsureInTransaction(doc)
+	#read the default shared parameter file 
+	try:
+		spfile = app.OpenSharedParameterFile()
+	except:
+		log = 'No Shared Parameter file found!'
+		break
+	#core data processing
+	try:
+		for item in params: 
+			eDef = defFile(spfile, group, item)
+			doc.FamilyManager.AddParameter(eDef, paramGroup, instance)
+			log = 'Shared parameter added successfully'
+			#only for testing
+			#log.append('Shared parameter added successfully')
+	except:
+		log = 'An error occurred! Please veryfy setting'
+		#only for testing
+		#log.append('An error occurred! Please veryfy setting')
+	TransactionManager.Instance.ForceCloseTransaction()
+
+#output assigned the OUT variable
+OUT = docs, log
+      
